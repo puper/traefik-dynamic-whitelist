@@ -1,0 +1,14 @@
+http:
+  routers:
+    whitelist-console:
+      rule: "Host(`gateway.example.com`) && Header(`X-CDN-Token`, `replace-with-cloudflare-header-token`)"
+      entryPoints:
+        - websecure
+      tls: {}
+      service: whitelist-console
+
+  services:
+    whitelist-console:
+      loadBalancer:
+        servers:
+          - url: "http://traefik-dynamic-whitelist:8080"

@@ -1,0 +1,6 @@
+.git
+.serena
+data
+gateway
+Dockerfile
+docker-compose*.yml

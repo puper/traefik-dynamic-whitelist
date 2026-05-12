@@ -1,0 +1,16 @@
+http:
+  routers:
+    bitwarden:
+      rule: "Host(`vault.example.com`) && Header(`X-CDN-Token`, `replace-with-cloudflare-header-token`)"
+      entryPoints:
+        - websecure
+      tls: {}
+      middlewares:
+        - dynamic-whitelist
+      service: bitwarden
+
+  services:
+    bitwarden:
+      loadBalancer:
+        servers:
+          - url: "http://bitwarden:80"
