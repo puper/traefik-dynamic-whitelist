@@ -9,6 +9,7 @@ services:
       STATE_PATH: "/data/state.json"
       TRAEFIK_DYNAMIC_PATH: "/traefik-dynamic/whitelist.yml"
       TEMP_HOURS: "24"
+      CLEANUP_INTERVAL: "1m"
       CLIENT_IP_HEADERS: "CF-Connecting-IP,X-Forwarded-For,X-Real-IP"
       # Set this to the Docker network CIDR or Traefik container IP that connects to this service.
       TRUSTED_PROXIES: "172.16.0.0/12"

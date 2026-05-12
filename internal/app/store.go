@@ -63,6 +63,26 @@ func (s *Store) Info(now time.Time) (temporary []temporaryEntry, permanent []per
 	return sortedTemporary(state), sortedPermanent(state), nil
 }
 
+func (s *Store) CleanupExpired(now time.Time) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	state, changed, err := s.load(now)
+	if err != nil {
+		return false, err
+	}
+	if !changed {
+		return false, nil
+	}
+	if err := s.save(state); err != nil {
+		return false, err
+	}
+	if err := s.writeTraefik(state); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (s *Store) Add(ip string, kind string, now time.Time) error {
 	if _, err := netip.ParseAddr(ip); err != nil {
 		return fmt.Errorf("invalid ip %q: %w", ip, err)

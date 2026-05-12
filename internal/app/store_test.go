@@ -128,3 +128,46 @@ func TestStoreDeleteRemovesIPAndUpdatesTraefikConfig(t *testing.T) {
 		t.Fatalf("deleted ip still exists in traefik config:\n%s", string(data))
 	}
 }
+
+func TestStoreCleanupExpiredOnlyWritesWhenChanged(t *testing.T) {
+	dir := t.TempDir()
+	traefikPath := filepath.Join(dir, "whitelist.yml")
+	store := NewStore(filepath.Join(dir, "state.json"), traefikPath, 24*time.Hour)
+	now := time.Date(2026, 5, 12, 6, 30, 0, 0, time.UTC)
+
+	if err := store.Add("203.0.113.10", "temp", now); err != nil {
+		t.Fatal(err)
+	}
+
+	changed, err := store.CleanupExpired(now.Add(time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed {
+		t.Fatal("cleanup should not change unexpired state")
+	}
+
+	changed, err = store.CleanupExpired(now.Add(25 * time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("cleanup should report changed state")
+	}
+
+	temporary, permanent, err := store.Info(now.Add(25 * time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(temporary) != 0 || len(permanent) != 0 {
+		t.Fatalf("unexpected state: temporary=%#v permanent=%#v", temporary, permanent)
+	}
+
+	data, err := os.ReadFile(traefikPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "203.0.113.10/32") {
+		t.Fatalf("expired ip still exists in traefik config:\n%s", string(data))
+	}
+}

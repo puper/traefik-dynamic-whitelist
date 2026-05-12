@@ -86,6 +86,7 @@ docker compose up -d --build
 | `TRAEFIK_DYNAMIC_PATH` | `data/whitelist.yml` | Traefik dynamic config 输出路径 |
 | `TRAEFIK_IP_STRATEGY_DEPTH` | `0` | Traefik `ipAllowList.ipStrategy.depth`，`0` 表示不输出 |
 | `TEMP_HOURS` | `24` | 临时授权有效小时数 |
+| `CLEANUP_INTERVAL` | `1m` | 过期临时 IP 清理间隔，只有发现状态变化才重写配置 |
 | `CLIENT_IP_HEADERS` | `X-Forwarded-For,X-Real-IP` | 可信代理场景下读取真实 IP 的请求头优先级 |
 | `TRUSTED_PROXIES` | 空 | 可信代理 CIDR 或 IP，逗号分隔 |
 

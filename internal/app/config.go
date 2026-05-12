@@ -16,6 +16,7 @@ type Config struct {
 	StatePath        string
 	TraefikPath      string
 	TempDuration     time.Duration
+	CleanupInterval  time.Duration
 	ClientIPHeaders  []string
 	TrustedProxyCIDR []netip.Prefix
 	TraefikIPDepth   int
@@ -39,6 +40,12 @@ func LoadConfigFromEnv() (Config, error) {
 		return Config{}, fmt.Errorf("TEMP_HOURS must be a positive integer")
 	}
 	cfg.TempDuration = time.Duration(hours) * time.Hour
+
+	cleanupInterval, err := time.ParseDuration(envOrDefault("CLEANUP_INTERVAL", "1m"))
+	if err != nil || cleanupInterval <= 0 {
+		return Config{}, fmt.Errorf("CLEANUP_INTERVAL must be a positive duration")
+	}
+	cfg.CleanupInterval = cleanupInterval
 
 	depth, err := strconv.Atoi(envOrDefault("TRAEFIK_IP_STRATEGY_DEPTH", "0"))
 	if err != nil || depth < 0 {

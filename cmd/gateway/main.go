@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -18,6 +19,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("create server: %v", err)
 	}
+
+	go server.RunCleanupLoop(context.Background())
 
 	log.Printf("gateway console listening on %s", cfg.ListenAddr)
 	if err := http.ListenAndServe(cfg.ListenAddr, server.Routes()); err != nil {
