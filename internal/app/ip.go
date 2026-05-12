@@ -29,16 +29,25 @@ func ClientIPs(r *http.Request, headers []string, trusted []netip.Prefix) ([]str
 
 	if isTrusted(remote, trusted) {
 		ips := make([]string, 0, len(headers))
-		seen := map[string]bool{}
+		hasIPv4 := false
+		hasIPv6 := false
 		for _, header := range headers {
 			for _, candidate := range strings.Split(r.Header.Get(header), ",") {
 				addr, err := netip.ParseAddr(strings.TrimSpace(candidate))
 				if err == nil {
-					ip := normalizeAddr(addr).String()
-					if !seen[ip] {
-						seen[ip] = true
-						ips = append(ips, ip)
+					normalized := normalizeAddr(addr)
+					if normalized.Is4() {
+						if hasIPv4 {
+							continue
+						}
+						hasIPv4 = true
+					} else {
+						if hasIPv6 {
+							continue
+						}
+						hasIPv6 = true
 					}
+					ips = append(ips, normalized.String())
 				}
 			}
 		}

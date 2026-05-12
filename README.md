@@ -182,7 +182,7 @@ http:
 2. 如果远端地址命中 `TRUSTED_PROXIES`，则按 `CLIENT_IP_HEADERS` 顺序读取请求头中的 IP。
 3. 如果未命中可信代理，则使用直接连接地址。
 
-在 IPv4/IPv6 双栈网络下，同一个访问者可能一会儿走 IPv4，一会儿走 IPv6。`GET /api/info` 会返回 `current_ips`，前端在“授权 IP”输入框留空时，会把当前检测到的全部 IP 一次性加入白名单。手动输入指定 IP 时，只授权输入的那个 IP。
+在 IPv4/IPv6 双栈网络下，同一个访问者可能一会儿走 IPv4，一会儿走 IPv6。`GET /api/info` 会返回 `current_ips`，前端在“授权 IP”输入框留空时，会把当前检测到的 IP 一次性加入白名单。为了避免代理链里出现多个不同 IPv4 时误授权，后端最多保留一个 IPv4 和一个 IPv6，按 `CLIENT_IP_HEADERS` 配置顺序优先。手动输入指定 IP 时，只授权输入的那个 IP。
 
 示例：
 
