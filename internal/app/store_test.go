@@ -51,6 +51,34 @@ func TestStoreWritesTraefikConfig(t *testing.T) {
 	}
 }
 
+func TestStoreAddManyWritesIPv4AndIPv6(t *testing.T) {
+	dir := t.TempDir()
+	traefikPath := filepath.Join(dir, "whitelist.yml")
+	store := NewStore(filepath.Join(dir, "state.json"), traefikPath, 24*time.Hour)
+	now := time.Date(2026, 5, 12, 6, 30, 0, 0, time.UTC)
+
+	if err := store.AddMany([]string{"203.0.113.10", "2001:db8::10"}, "perm", now); err != nil {
+		t.Fatal(err)
+	}
+
+	_, permanent, err := store.Info(now.Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(permanent) != 2 {
+		t.Fatalf("unexpected permanent list: %#v", permanent)
+	}
+
+	data, err := os.ReadFile(traefikPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	if !strings.Contains(content, "203.0.113.10/32") || !strings.Contains(content, "2001:db8::10/128") {
+		t.Fatalf("unexpected traefik config:\n%s", content)
+	}
+}
+
 func TestStoreWritesTraefikIPStrategyDepth(t *testing.T) {
 	dir := t.TempDir()
 	traefikPath := filepath.Join(dir, "whitelist.yml")

@@ -15,6 +15,7 @@ const permanentList = document.querySelector('#permanentList');
 const toast = document.querySelector('#toast');
 
 let token = localStorage.getItem(TOKEN_KEY) || '';
+let currentIPs = [];
 
 function showAuth(message = '') {
   dashboardView.classList.add('hidden');
@@ -88,7 +89,10 @@ function formatTime(value) {
 }
 
 function renderInfo(info) {
-  currentIP.textContent = info.current_ip;
+  currentIPs = Array.isArray(info.current_ips) && info.current_ips.length > 0
+    ? info.current_ips
+    : [info.current_ip].filter(Boolean);
+  currentIP.textContent = currentIPs.join(' / ');
   renderTemporary(info.temporary_ips || []);
   renderPermanent(info.permanent_ips || []);
 }
@@ -150,7 +154,7 @@ async function addCurrentIP(type, button) {
   try {
     await api('/api/add', {
       method: 'POST',
-      body: JSON.stringify(ip ? { type, ip } : { type }),
+      body: JSON.stringify(ip ? { type, ip } : { type, ips: currentIPs }),
     });
     showToast('授权成功');
     await refreshInfo();

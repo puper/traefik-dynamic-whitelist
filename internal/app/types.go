@@ -14,6 +14,7 @@ type apiError struct {
 
 type infoResult struct {
 	CurrentIP    string           `json:"current_ip"`
+	CurrentIPs   []string         `json:"current_ips"`
 	TemporaryIPs []temporaryEntry `json:"temporary_ips"`
 	PermanentIPs []permanentEntry `json:"permanent_ips"`
 }
@@ -30,8 +31,9 @@ type permanentEntry struct {
 }
 
 type addRequest struct {
-	Type string `json:"type"`
-	IP   string `json:"ip"`
+	Type string   `json:"type"`
+	IP   string   `json:"ip"`
+	IPs  []string `json:"ips"`
 }
 
 type deleteRequest struct {

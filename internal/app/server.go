@@ -4,6 +4,7 @@ import (
 	"crypto/subtle"
 	"embed"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"net/http"
 	"net/netip"
@@ -54,7 +55,7 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request) {
-	currentIP, err := ClientIP(r, s.cfg.ClientIPHeaders, s.cfg.TrustedProxyCIDR)
+	currentIPs, err := ClientIPs(r, s.cfg.ClientIPHeaders, s.cfg.TrustedProxyCIDR)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_CLIENT_IP", "无法识别当前访问 IP")
 		return
@@ -68,7 +69,8 @@ func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, apiResponse{
 		Result: infoResult{
-			CurrentIP:    currentIP,
+			CurrentIP:    currentIPs[0],
+			CurrentIPs:   currentIPs,
 			TemporaryIPs: temporary,
 			PermanentIPs: permanent,
 		},
@@ -83,13 +85,13 @@ func (s *Server) handleAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	targetIP, err := s.targetIP(r, req.IP)
+	targetIPs, err := s.targetIPs(r, req.IP, req.IPs)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_IP", "授权 IP 格式无效")
 		return
 	}
 
-	if err := s.store.Add(targetIP, req.Type, s.now().UTC()); err != nil {
+	if err := s.store.AddMany(targetIPs, req.Type, s.now().UTC()); err != nil {
 		if strings.Contains(err.Error(), "unsupported add type") {
 			writeError(w, http.StatusBadRequest, "BAD_REQUEST", "授权类型无效")
 			return
@@ -126,6 +128,37 @@ func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 		Result: map[string]string{"status": "ok"},
 		Error:  nil,
 	})
+}
+
+func (s *Server) targetIPs(r *http.Request, requested string, requestedList []string) ([]string, error) {
+	if strings.TrimSpace(requested) != "" {
+		ip, err := s.targetIP(r, requested)
+		if err != nil {
+			return nil, err
+		}
+		return []string{ip}, nil
+	}
+	if len(requestedList) == 0 {
+		return ClientIPs(r, s.cfg.ClientIPHeaders, s.cfg.TrustedProxyCIDR)
+	}
+
+	ips := make([]string, 0, len(requestedList))
+	seen := map[string]bool{}
+	for _, item := range requestedList {
+		addr, err := netip.ParseAddr(strings.TrimSpace(item))
+		if err != nil {
+			return nil, err
+		}
+		ip := normalizeAddr(addr).String()
+		if !seen[ip] {
+			seen[ip] = true
+			ips = append(ips, ip)
+		}
+	}
+	if len(ips) == 0 {
+		return nil, errors.New("empty ip list")
+	}
+	return ips, nil
 }
 
 func (s *Server) targetIP(r *http.Request, requested string) (string, error) {

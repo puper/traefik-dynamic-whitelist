@@ -68,6 +68,16 @@ func (s *Store) Add(ip string, kind string, now time.Time) error {
 		return fmt.Errorf("invalid ip %q: %w", ip, err)
 	}
 
+	return s.AddMany([]string{ip}, kind, now)
+}
+
+func (s *Store) AddMany(ips []string, kind string, now time.Time) error {
+	for _, ip := range ips {
+		if _, err := netip.ParseAddr(ip); err != nil {
+			return fmt.Errorf("invalid ip %q: %w", ip, err)
+		}
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -76,21 +86,27 @@ func (s *Store) Add(ip string, kind string, now time.Time) error {
 		return err
 	}
 
-	// 最新授权操作必须成为唯一状态，避免同一个 IP 同时存在于临时和永久白名单。
-	delete(state.Temporary, ip)
-	delete(state.Permanent, ip)
-
 	switch kind {
 	case "temp":
-		state.Temporary[ip] = temporaryEntry{
-			IP:        ip,
-			AddedAt:   now.UTC(),
-			ExpiresAt: now.Add(s.tempWindow).UTC(),
+		for _, ip := range ips {
+			// 最新授权操作必须成为唯一状态，避免同一个 IP 同时存在于临时和永久白名单。
+			delete(state.Temporary, ip)
+			delete(state.Permanent, ip)
+			state.Temporary[ip] = temporaryEntry{
+				IP:        ip,
+				AddedAt:   now.UTC(),
+				ExpiresAt: now.Add(s.tempWindow).UTC(),
+			}
 		}
 	case "perm":
-		state.Permanent[ip] = permanentEntry{
-			IP:      ip,
-			AddedAt: now.UTC(),
+		for _, ip := range ips {
+			// 最新授权操作必须成为唯一状态，避免同一个 IP 同时存在于临时和永久白名单。
+			delete(state.Temporary, ip)
+			delete(state.Permanent, ip)
+			state.Permanent[ip] = permanentEntry{
+				IP:      ip,
+				AddedAt: now.UTC(),
+			}
 		}
 	default:
 		return fmt.Errorf("unsupported add type %q", kind)

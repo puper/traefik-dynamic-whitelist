@@ -1,5 +1,6 @@
 /gateway/
 /data/
+/prod/
 /.serena/
 /docker-compose.yml
 
