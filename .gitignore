@@ -1,4 +1,5 @@
-gateway
+/gateway/
 /data/
 /.serena/
+/docker-compose.yml
 
